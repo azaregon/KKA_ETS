@@ -1,0 +1,121 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ambulance Routing Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; right:0; left:0; }
+    .info { position:absolute; z-index:1000; top:10px; left:10px; background:white; padding:8px; border-radius:4px;}
+  </style>
+</head>
+<body>
+<div class="info">Klik peta untuk memilih lokasi kecelakaan.</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(async function init() {
+  try {
+    // get bounds from server to set map view, fall back to a small default if server fails
+    let bounds = null;
+    try {
+      const res = await fetch('/api/bounds');
+      if (res.ok) {
+        bounds = await res.json(); // {north,south,east,west}
+      } else {
+        console.warn('/api/bounds responded with', res.status);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch /api/bounds:', err);
+    }
+
+    const southWest = bounds ? [bounds.south, bounds.west] : [-6.9, 107.6]; // fallback center (example)
+    const northEast = bounds ? [bounds.north, bounds.east] : [-6.8, 107.7];
+    const map = L.map('map').fitBounds([southWest, northEast]);
+
+    // OSM tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    // load hospitals from server and show markers (non-fatal)
+    try {
+      const hospRes = await fetch('/api/hospitals');
+      if (hospRes.ok) {
+        const hospitals = await hospRes.json(); // array of {id,name,lat,lon,load_index}
+        hospitals.forEach(h => {
+          L.marker([h.lat, h.lon], {title: h.name})
+            .addTo(map)
+            .bindPopup(`${h.name}<br>Load: ${h.load_index}`);
+        });
+      } else {
+        console.warn('/api/hospitals responded with', hospRes.status);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch /api/hospitals:', err);
+    }
+
+    let routeLayer = null;
+
+    map.on('click', async function(e) {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+
+      // show temporary marker
+      L.marker([lat, lon], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/64/64472.png', iconSize:[28,28]})}).addTo(map);
+
+      try {
+        const postRes = await fetch('/api/route', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({lat: lat, lon: lon, algorithm: 'astar'}) // or 'ucs'
+        });
+
+        if (!postRes.ok) {
+          throw new Error('Route request failed: ' + postRes.status);
+        }
+
+        const data = await postRes.json();
+
+        // data: {route: GeoJSON FeatureCollection, algorithm, cost, nodes_count, hospital}
+        // remove prev route
+        if (routeLayer) map.removeLayer(routeLayer);
+
+        if (data.route) {
+          routeLayer = L.geoJSON(data.route, {
+            style: function(feature) {
+              return {color: feature.properties && feature.properties.color ? feature.properties.color : 'red', weight: 5};
+            }
+          }).addTo(map);
+
+          // center on route
+          if (Array.isArray(data.route.features) && data.route.features.length > 0) {
+            const coords = data.route.features[0].geometry.coordinates;
+            map.fitBounds(coords.map(c => [c[1], c[0]]));
+          }
+        } else {
+          console.warn('No route returned from server');
+        }
+
+        alert(`Algorithm: ${data.algorithm}\nHospital: ${data.hospital_name}\nEstimated time: ${ (data.cost/60).toFixed(1) } min`);
+      } catch (err) {
+        console.error('Error fetching route:', err);
+        alert('Gagal menghitung rute: ' + (err.message || err));
+      }
+    });
+
+  } catch (err) {
+    console.error('Initialization error:', err);
+    // show a minimal map so the page isn't blank
+    document.querySelector('.info').textContent = 'Terjadi kesalahan memuat peta. Periksa konsol untuk detail.';
+    const fallbackMap = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(fallbackMap);
+  }
+})();
+</script>
+</body>
+</html>
