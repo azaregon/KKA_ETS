@@ -28,15 +28,15 @@
         "name":"Siloam Hospitals",
         "x":112.7463915186,
         "y":-7.2740311988,
-        "load_percentage":10,
-        "wait_time":50.0
+        "load_percentage":100,
+        "wait_time":500.0
     },
     {
         "ID":464566820,
         "name":"RSUD Dr. Soetomo",
         "x":112.7581832823,
         "y":-7.2682133036,
-        "load_percentage":15,
-        "wait_time":75.0
+        "load_percentage":100,
+        "wait_time":500.0
     }
 ]

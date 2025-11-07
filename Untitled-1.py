@@ -25,7 +25,6 @@ def load_graph(geojson):
     G = ox.graph_from_polygon(poly, network_type='drive')
     return G, poly
 
-
 def get_hw_type(hw):
     if isinstance(hw, list):
         return hw[0]
@@ -52,8 +51,8 @@ def get_hospital_data(poly,use_all=False, choose_hospital=[]):
 
 def load_wait_time(hospitals):
     hospitals['load_percentage'] = 100
-    hospitals['load_percentage'][3] = 10
-    hospitals['load_percentage'][4] = 15
+    # hospitals['load_percentage'][3] = 10
+    # hospitals['load_percentage'][4] = 15
     hospitals['wait_time'] = (hospitals['load_percentage'] / 100) * 500
     return hospitals
 
@@ -197,7 +196,7 @@ def make_heuristic(G):
 # -------------------------------- MAIN - MAIN ------------------------------- #
 def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
 
-    algos = ["A*", "UCS", "Djikstra"]
+    algos = ["A*", "UCS", "Dijkstra"]
     algo_costs = dict()
 
     heur = make_heuristic(G)
@@ -213,12 +212,12 @@ def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
             haversine_ambulance_source = haversine_per_hospital
             ambulance_source_hospital_id = idx
 
+    best_cost = float('inf')
+    best_route = None
+    best_hospital = None
+    best_route_to_accident = None
+    best_route_to_hospital = None
     for algo in algos:
-        best_cost = float('inf')
-        best_route = None
-        best_hospital = None
-        best_route_to_accident = None
-        best_route_to_hospital = None
 
         print(f"Algorithm: {algo}")
         algo_costs[algo] = {}
@@ -261,6 +260,7 @@ def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
     best_route = sorted_cost_algos[0][1]['route']
     best_route_to_hospital = sorted_cost_algos[0][1]['route_to_hospital']
     best_route_to_accident = sorted_cost_algos[0][1]['route_to_accident']
+    best_cost = sorted_cost_algos[0][1]['cost']
 
     return {
         'best_route' : best_route,
@@ -284,7 +284,6 @@ def get_fastest_route(G, lat,long, geojson, hospitals_data, rs_node):
     center_lon = G.nodes[korban_node]['x']
 
     m = folium.Map(location=[center_lat, center_lon], zoom_start=15)
-
 
     folium.Polygon(
         locations=geojson['geometry']['coordinates'],
