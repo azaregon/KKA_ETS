@@ -197,7 +197,7 @@ def make_heuristic(G):
 # -------------------------------- MAIN - MAIN ------------------------------- #
 def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
 
-    algos = ["A*", "UCS", "Djikstra"]
+    algos = ["A*", "UCS", "Dijkstra"]
     algo_costs = dict()
 
     heur = make_heuristic(G)
@@ -223,6 +223,7 @@ def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
         print(f"Algorithm: {algo}")
         algo_costs[algo] = {}
         for rs in rs_node:
+            # total_cost = 0
             # print(G.nodes[rs]['wait_time'])
             if algo == "A*":
                 route_to_accident, cost_to_accident = astar_func(G, ambulance_source_hospital_id, korban_node, heuristic=heur)
@@ -235,11 +236,13 @@ def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
                 total_cost = cost_to_accident + cost_to_hospital + G.nodes[rs]['wait_time']
 
             elif algo == "Dijkstra":
+                print(f"Dijkstra for {rs}")
                 route_to_accident, cost_to_accident = dijkstra_search(G, ambulance_source_hospital_id, korban_node)
                 route_to_hospital, cost_to_hospital = dijkstra_search(G, korban_node, rs)
                 total_cost = cost_to_accident + cost_to_hospital + G.nodes[rs]['wait_time']
 
-        
+            print(cost_to_accident, cost_to_hospital, G.nodes[rs]['wait_time'])
+            # print(G.nodes[rs]['wait_time'])
             print(f"RS {hospitals_data[hospitals_data.index == rs]['name'].values[0]}: total waktu tempuh = {total_cost:.2f} detik")
 
             if total_cost < best_cost:
@@ -285,14 +288,15 @@ def get_fastest_route(G, lat,long, geojson, hospitals_data, rs_node):
 
     m = folium.Map(location=[center_lat, center_lon], zoom_start=15)
 
+   
 
-    folium.Polygon(
-        locations=geojson['geometry']['coordinates'],
-        smooth_factor=4,
-        color="crimson",
-        no_clip=True,
-        tooltip="Hi there!",
-    ).add_to(m)
+    # folium.Polygon(
+    #     locations=geojson['geometry']['coordinates'],
+    #     smooth_factor=4,
+    #     color="crimson",
+    #     no_clip=True,
+    #     tooltip="Hi there!",
+    # ).add_to(m)
 
     # ------------------------------------ --- ----------------------------------- #
 
@@ -359,108 +363,114 @@ def main():
     # korban_lat = -7.272480,
     # korban_long = 112.765108
 
-    # korban_lat = -7.280612
-    # korban_long = 112.780833
+    korban_lat = -7.280612
+    korban_long = 112.780833
 
-    korban_lat = -7.272162
-    korban_long = 112.777660
+    # korban_lat = -7.272162
+    # korban_long = 112.777660
 
     hospitals = pd.read_json('hospital_seeding_data.json')
     hospitals = hospitals.set_index('ID')
 
-    korban_node = generate_node_korban(G, korban_lat, korban_long)
+    # korban_node = generate_node_korban(G, korban_lat, korban_long)
     m, target_data = get_fastest_route(G, korban_lat, korban_long, geojson, hospitals, hospitals.index.tolist())
     # show folium map
-    m.save("test_map.html")
+    # m.save("test_map.html")
 
 
 
 
-    # app = Flask(__name__)
+    app = Flask(__name__)
 
 
-    # @app.route('/')
-    # def index():
-    #     # Create base map
-    #     m = folium.Map()
+    @app.route('/')
+    def index():
+        # Create base map
+        print(geojson['geometry']['coordinates'][0][0])
+        m = folium.Map(location= tuple(geojson['geometry']['coordinates'][0][0][::-1]),zoom_start=12)
+        folium.GeoJson(geojson).add_to(m)
+        # Get Folium's internal JS variable name (e.g. map_abc123)
+        map_id = m.get_name()
 
-    #     # Get Folium's internal JS variable name (e.g. map_abc123)
-    #     map_id = m.get_name()
+        # JavaScript that waits until the map variable exists before binding the click event
+        click_js = f"""
+        function attachClickHandler() {{
+            if (typeof {map_id} === 'undefined') {{
+                // Wait and try again if the map variable isn't ready yet
+                setTimeout(attachClickHandler, 50);
+                return;
+            }}
 
-    #     # JavaScript that waits until the map variable exists before binding the click event
-    #     click_js = f"""
-    #     function attachClickHandler() {{
-    #         if (typeof {map_id} === 'undefined') {{
-    #             // Wait and try again if the map variable isn't ready yet
-    #             setTimeout(attachClickHandler, 50);
-    #             return;
-    #         }}
+            {map_id}.on('click', function(e) {{
+                var lat = e.latlng.lat.toFixed(6);
+                var lon = e.latlng.lng.toFixed(6);
 
-    #         {map_id}.on('click', function(e) {{
-    #             var lat = e.latlng.lat.toFixed(6);
-    #             var lon = e.latlng.lng.toFixed(6);
+                var popupContent = `
+                    <div style="text-align:center;">
+                        <b>Latitude:</b> ${{lat}}<br>
+                        <b>Longitude:</b> ${{lon}}<br><br>
+                        <button onclick="window.location.href='/needhelp_say?lat=${{lat}}&lon=${{lon}}'"
+                            style="background:#007bff;color:white;border:none;padding:5px 10px;
+                                border-radius:4px;cursor:pointer;">
+                            please_help
+                        </button>
+                    </div>
+                `;
 
-    #             var popupContent = `
-    #                 <div style="text-align:center;">
-    #                     <b>Latitude:</b> ${{lat}}<br>
-    #                     <b>Longitude:</b> ${{lon}}<br><br>
-    #                     <button onclick="window.location.href='/needhelp_say?lat=${{lat}}&lon=${{lon}}'"
-    #                         style="background:#007bff;color:white;border:none;padding:5px 10px;
-    #                             border-radius:4px;cursor:pointer;">
-    #                         please_help
-    #                     </button>
-    #                 </div>
-    #             `;
+                L.popup()
+                    .setLatLng(e.latlng)
+                    .setContent(popupContent)
+                    .openOn({map_id});
+            }});
+        }}
 
-    #             L.popup()
-    #                 .setLatLng(e.latlng)
-    #                 .setContent(popupContent)
-    #                 .openOn({map_id});
-    #         }});
-    #     }}
+        attachClickHandler();
+        """
 
-    #     attachClickHandler();
-    #     """
+        # Attach the JS to the map
+        m.get_root().script.add_child(Element(click_js))
 
-    #     # Attach the JS to the map
-    #     m.get_root().script.add_child(Element(click_js))
+        return m.get_root().render()
+        # return flask.render_template("index.html", map_html=m._repr_html_())
 
-    #     return m.get_root().render()
-    #     # return flask.render_template("index.html", map_html=m._repr_html_())
+    @app.route("/map/<map_uuid>")
+    def getRoute(map_uuid):
+        return flask.send_file(f"map_data/{map_uuid}.html", mimetype="text/html")
 
-    # @app.route("/map/<map_uuid>")
-    # def getRoute(map_uuid):
-    #     return flask.send_file(f"map_data/{map_uuid}.html", mimetype="text/html")
+    @app.route('/ambulance/<rs_id>')
+    def ambulanceRequestList(rs_id):
+        db_query = dbmodel.getAllAmbulanceRequest(rs_id)
+        return flask.render_template('outgoAmbulance.html',ambulance_list= db_query)
 
-    # @app.route('/ambulance/<rs_id>')
-    # def ambulanceRequestList(rs_id):
-    #     db_query = dbmodel.getAllAmbulanceRequest(rs_id)
-    #     return flask.render_template('outgoAmbulance.html',ambulance_list= db_query)
+    @app.route("/needhelp_say")
+    def needhelp_say():
+        lat_q = request.args.get('lat') or request.args.get('latitude')
+        lon_q = request.args.get('long') or request.args.get('lon') or request.args.get('lng') or request.args.get('longitude')
 
-    # @app.route("/needhelp_say")
-    # def showMap():
-    #     lat_q = request.args.get('lat') or request.args.get('latitude')
-    #     lon_q = request.args.get('long') or request.args.get('lon') or request.args.get('lng') or request.args.get('longitude')
+        if not lat_q or not lon_q:
+            return abort(400, "Missing required query parameters: lat and long")
 
-    #     if not lat_q or not lon_q:
-    #         return abort(400, "Missing required query parameters: lat and long")
+        try:
+            lat = float(lat_q)
+            lon = float(lon_q)
+        except ValueError:
+            return abort(400, "Invalid lat/long values")
 
-    #     try:
-    #         lat = float(lat_q)
-    #         lon = float(lon_q)
-    #     except ValueError:
-    #         return abort(400, "Invalid lat/long values")
+        print(lat,lon)
 
-    #     print(lat,lon)
-    #     m, target_data = get_fastest_route(lat, lon)
-    #     inserted_data = dbmodel.addNewpatientTransportRecord(target_data['ambulance_source_hospital_id'],target_data['best_hospital_id'])
-    #     m.save(f"map_data/{inserted_data['html_fname']}")
-    #     # return str(target_data)
+        hospitals = pd.read_json('hospital_seeding_data.json')
+        hospitals = hospitals.set_index('ID')
 
-    #     return flask.redirect(flask.url_for('getRoute',map_uuid=inserted_data['ID']))
+        m, target_data = get_fastest_route(G, lat, lon, geojson, hospitals, hospitals.index.tolist())
+        inserted_data = dbmodel.addNewpatientTransportRecord(target_data['ambulance_source_hospital_id'],target_data['best_hospital_id'])
+        m.save(f"map_data/{inserted_data['html_fname']}")
+        # return str(target_data)
+
+        return flask.redirect(flask.url_for('getRoute',map_uuid=inserted_data['ID']))
 
 
-    # app.run(use_reloader=False, debug=True)
+    app.run(use_reloader=False, debug=True)
 
 if __name__ == "__main__":
+    print("starting....")
     main()
