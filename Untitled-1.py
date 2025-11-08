@@ -300,7 +300,7 @@ def colorize_all_edges(G, m):
     lower = np.percentile(costs, 5)   # cost rendah
     upper = np.percentile(costs, 95)  # cost tinggi tapi tanpa outlier
 
-    colormap = colormap = cm.LinearColormap(
+    colormap = cm.LinearColormap(
         ['green','yellow','red'], 
         vmin=lower, vmax=upper
     )
