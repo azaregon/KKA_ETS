@@ -79,7 +79,8 @@ def addNewpatientTransportRecord(hs_id_from,hs_id_to):
 def getAllAmbulanceRequest(hs_id):
     # PATIENT_TRANSPORT_LIST.__table__
     engine = create_engine(DB_URL, echo=True)
-    ret_val = []
+    ret_val = {'hospital_name': '',
+               'ambulance_list' : []}
     with Session(engine) as session:
         stmt = (select(PATIENT_TRANSPORT_LIST,HOSPITAL)
                 .join(HOSPITAL, 
@@ -87,15 +88,19 @@ def getAllAmbulanceRequest(hs_id):
                 .where(PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == hs_id)
                 )
         try:
+            hospital_for_id = session.execute(select(HOSPITAL).where(HOSPITAL.ID == hs_id)).scalars().first()
+            print(hospital_for_id.name)
+            ret_val['hospital_name'] = hospital_for_id.name
             query_result = session.execute(stmt).all()
             for transport_detail, hospital_dest in query_result:
-                ret_val.append({
+                ret_val['ambulance_list'].append({
                     "ID" : transport_detail.ID,
                     "status" : transport_detail.status,
                     "html_fname" : transport_detail.html_fname,
                     "hospital_dest_name" : hospital_dest.name
                 })
-        except:
+        except Exception as e:
+            print(e)
             session.rollback()
         else:
             session.commit()
@@ -105,16 +110,19 @@ def getAllAmbulanceRequest(hs_id):
 def getNewIncomingEmergencyPatient(hs_id):
     # PATIENT_TRANSPORT_LIST.__table__
     engine = create_engine(DB_URL, echo=True)
-    ret_val = []
+    ret_val = {'hospital_name': '',
+               'incomingList' : []}
     with Session(engine) as session:
         stmt = (select(PATIENT_TRANSPORT_LIST)
                 .join(HOSPITAL, 
                       PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == HOSPITAL.ID)
                 .where(PATIENT_TRANSPORT_LIST.HOSPITAL_DEST_ID == hs_id))
         try:
+            hospital_for_id = session.execute(select(HOSPITAL).where(HOSPITAL.ID == hs_id)).scalars().first()
+            ret_val['hospital_name'] = hospital_for_id.name
             query_result = session.execute(stmt).mappings().all()
             for transport_detail, hospital_ambulance in query_result:
-                ret_val.append({
+                ret_val['incomingList'].append({
                     "ID" : transport_detail.ID,
                     "status" : transport_detail.status,
                     "html_fname" : transport_detail.html_fname,

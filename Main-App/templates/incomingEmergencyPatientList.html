@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ambulance Dispatch List</title>
+    <title>Incoming Patient List</title>
     <style>
         table {
             width: 90%;
@@ -23,20 +23,20 @@
     </style>
 </head>
 <body>
-    <h2 style="text-align:center;">Ambulance Dispatch List for {{ hospital_name }}</h2>
+    <h2 style="text-align:center;">Incoming Emergency Patient for {{ hospital_name }}</h2>
     <table>
         <tr>
             <th>No.</th>
             <th>ID</th>
             <th>Time</th>
             <th>Status</th>
-            <th>Destination Hospital</th>
+            <th>Ambulance From</th>
             <th>Action</th>
         </tr>
-        {% for t in ambulance_list %}
+        {% for t in incoming_list %}
         <tr>
             <td>{{ loop.index }}</td>
-            <td title="{{ t.ID }}">{{ t.ID[:4] }}{% if t.ID|length > 4 %}...{% endif %}</td>
+            <td title="{{ t.ID }}" >{{ t.ID[:8] }}{% if t.ID|length > 8 %}...{% endif %}</td>
             <td>{{ t.added_on }}</td>
             <td>{{ t.status }}</td>
             <td>{{ t.hospital_dest_name }}</td>

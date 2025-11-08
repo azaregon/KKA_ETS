@@ -72,12 +72,12 @@ def getRoute(map_uuid):
 @app.route('/ambulance/<rs_id>')
 def ambulanceRequestList(rs_id):
     db_query = dbmodel.getAllAmbulanceRequest(rs_id)
-    return flask.render_template('outgoAmbulance.html',ambulance_list= db_query)
+    return flask.render_template('outgoAmbulance.html',hospital_name=db_query['hospital_name'], ambulance_list=db_query['ambulance_list'])
 
 @app.route("/incoming_patient/<rs_id>")
 def incomingPatientList(rs_id):
-    db_query = dbmodel.getAllAmbulanceRequest(rs_id)
-    return flask.render_template('outgoAmbulance.html',ambulance_list= db_query)
+    db_query = dbmodel.getAllIncomingEmergencyPatient(rs_id)
+    return flask.render_template('incomingEmergencyPatientList.html',hospital_name=db_query['hospital_name'], incoming_list= db_query['incoming_list'])
 
 
 @app.route("/needhelp_say")

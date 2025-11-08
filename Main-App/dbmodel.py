@@ -28,6 +28,9 @@ class PATIENT_TRANSPORT_LIST(Base):
 
 
 # --------------------------------- functions -------------------------------- #
+from datetime import datetime
+
+
 ### DATABASE UTILITY FUNCTIONS 
 def createAllTables(engine,drop_exist=False) -> None:
     if drop_exist:
@@ -50,7 +53,7 @@ def seedWithList(engine, table_class, seed_list):
 def addNewpatientTransportRecord(hs_id_from,hs_id_to):
 
     import uuid
-    import time
+    
     engine = create_engine(DB_URL, echo=True)
     with Session(engine) as session:
         try:
@@ -79,53 +82,77 @@ def addNewpatientTransportRecord(hs_id_from,hs_id_to):
 def getAllAmbulanceRequest(hs_id):
     # PATIENT_TRANSPORT_LIST.__table__
     engine = create_engine(DB_URL, echo=True)
-    ret_val = []
+    ret_val = {'hospital_name': '',
+               'ambulance_list' : []}
     with Session(engine) as session:
-        stmt = (select(PATIENT_TRANSPORT_LIST,HOSPITAL)
+        stmt = (select(PATIENT_TRANSPORT_LIST, HOSPITAL)
                 .join(HOSPITAL, 
                       PATIENT_TRANSPORT_LIST.HOSPITAL_DEST_ID == HOSPITAL.ID) # find the destination hospital
                 .where(PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == hs_id)
+                .order_by(PATIENT_TRANSPORT_LIST.added_on)
                 )
         try:
+            hospital_for_id = session.execute(select(HOSPITAL).where(HOSPITAL.ID == hs_id)).scalars().first()
+            # print(hospital_for_id.name)      
+            ret_val['hospital_name'] = hospital_for_id.name
             query_result = session.execute(stmt).all()
             for transport_detail, hospital_dest in query_result:
-                ret_val.append({
+                ret_val['ambulance_list'].append({
                     "ID" : transport_detail.ID,
+                    "added_on" : datetime.fromtimestamp(transport_detail.added_on).strftime('%Y-%m-%d %H:%M:%S'), 
                     "status" : transport_detail.status,
                     "html_fname" : transport_detail.html_fname,
                     "hospital_dest_name" : hospital_dest.name
                 })
-        except:
+        except Exception as e:
+            # print(e)
             session.rollback()
         else:
             session.commit()
 
     return ret_val
 
-def getNewIncomingEmergencyPatient(hs_id):
+def getAllIncomingEmergencyPatient(hs_id):
     # PATIENT_TRANSPORT_LIST.__table__
     engine = create_engine(DB_URL, echo=True)
-    ret_val = []
+    ret_val = {'hospital_name': '',
+               'incoming_list' : []}
     with Session(engine) as session:
-        stmt = (select(PATIENT_TRANSPORT_LIST)
+        # stmt = (select(PATIENT_TRANSPORT_LIST,HOSPITAL)
+        #         .join(HOSPITAL, 
+        #               PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == HOSPITAL.ID)
+        #         .where(PATIENT_TRANSPORT_LIST.HOSPITAL_DEST_ID == hs_id))
+        stmt = (select(PATIENT_TRANSPORT_LIST,HOSPITAL)
                 .join(HOSPITAL, 
-                      PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == HOSPITAL.ID)
-                .where(PATIENT_TRANSPORT_LIST.HOSPITAL_DEST_ID == hs_id))
+                      PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == HOSPITAL.ID) # find the destination hospital
+                .where(PATIENT_TRANSPORT_LIST.HOSPITAL_DEST_ID == hs_id)
+                .order_by(PATIENT_TRANSPORT_LIST.added_on)
+
+                )
         try:
-            query_result = session.execute(stmt).mappings().all()
-            for transport_detail, hospital_ambulance in query_result:
-                ret_val.append({
+            hospital_for_id = session.execute(select(HOSPITAL).where(HOSPITAL.ID == hs_id)).scalars().first()
+            ret_val['hospital_name'] = hospital_for_id.name
+            query_result = session.execute(stmt).all()
+            for transport_detail, hospital_dest in query_result:
+                # print()
+                # print(query_result)
+                # print()
+                ret_val['incoming_list'].append({
                     "ID" : transport_detail.ID,
+                    "added_on" : datetime.fromtimestamp(transport_detail.added_on).strftime('%Y-%m-%d %H:%M:%S'), 
                     "status" : transport_detail.status,
                     "html_fname" : transport_detail.html_fname,
-                    "hospital_dest_name" : hospital_ambulance.name
+                    "hospital_dest_name" : hospital_dest.name
                 })
-        except:
+        except Exception as e:
+            # print()
+            # print(e)
+            # print()
             session.rollback()
         else:
             session.commit()
 
-    return query_result
+    return ret_val
         
 
 
