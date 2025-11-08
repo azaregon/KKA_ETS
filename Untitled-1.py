@@ -13,6 +13,7 @@ import numpy as np
 import math
 import heapq
 import folium
+import branca.colormap as cm
 
 from flask import Flask
 from flask import request, abort
@@ -87,7 +88,7 @@ def generate_cost_edges(G, hospitals):
         if u in idx_hospitals.values or v in idx_hospitals.values:
             data['speed_limit'] = 100
         else:
-            data['speed_limit'] = 100#random.choice([100,60,40,20,10,5,1])
+            data['speed_limit'] = random.choice([100,60,40,20,10,5,1])
         data['cost'] = (data['length']) / (data['speed_limit'] * 1000 / 3600)
 
         if "load_percentage" in G.nodes[v]:
@@ -272,6 +273,58 @@ def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
         'best_cost' : best_cost
     }
 
+import numpy as np
+
+def colorize_all_edges(G, m):
+    segments = []
+    costs = []
+
+    for u, v, data in G.edges(data=True):
+        if "cost" not in data:
+            continue
+        
+        cost = data["cost"]
+        costs.append(cost)
+
+        if "geometry" in data:
+            coords = [(pt[1], pt[0]) for pt in data["geometry"].coords]
+        else:
+            coords = [
+                (G.nodes[u]['y'], G.nodes[u]['x']),
+                (G.nodes[v]['y'], G.nodes[v]['x'])
+            ]
+
+        segments.append((coords, cost))
+
+    #Clip cost range to reduce red dominance 
+    lower = np.percentile(costs, 5)   # cost rendah
+    upper = np.percentile(costs, 95)  # cost tinggi tapi tanpa outlier
+
+    colormap = colormap = cm.LinearColormap(
+        ['green','yellow','red'], 
+        vmin=lower, vmax=upper
+    )
+
+
+    for coords, cost in segments:
+        # Clip value so visualization stays consistent
+        normalized_cost = np.clip(cost, lower, upper)
+        color = colormap(normalized_cost)
+
+        folium.PolyLine(
+            coords,
+            weight=3,
+            color=color,
+            opacity=0.8
+        ).add_to(m)
+
+    colormap.caption = "Edge Cost (Lower = Faster)"
+    colormap.add_to(m)
+
+    return m
+
+
+
 def get_fastest_route(G, lat,long, geojson, hospitals_data, rs_node):
     korban_node = generate_node_korban(G,lat,long)
     route_result = findRoute(G, hospitals_data, rs_node, korban_node, lat, long)
@@ -313,9 +366,12 @@ def get_fastest_route(G, lat,long, geojson, hospitals_data, rs_node):
         icon=folium.Icon(color='blue', icon='hospital', prefix="fa")
     ).add_to(m)
 
-    folium.PolyLine(route_coords, weight=6, color='green', opacity=0.3).add_to(m)
-    folium.PolyLine(route_coords_to_accident, weight=6, color='red', opacity=0.8).add_to(m)
-    folium.PolyLine(route_coords_to_hospital, weight=6, color='blue', opacity=0.3).add_to(m)
+    m = colorize_all_edges(G, m)
+
+    # Setelah semua edge terwarnai, gambar rute terbaik dengan tebal agar terlihat
+    folium.PolyLine(route_coords, weight=7, color='blue', opacity=1).add_to(m)
+    folium.PolyLine(route_coords_to_accident, weight=8, color='red', opacity=1).add_to(m)
+    folium.PolyLine(route_coords_to_hospital, weight=7, color='green', opacity=1).add_to(m)
 
     return m, route_result
 
