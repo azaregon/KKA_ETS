@@ -1,0 +1,42 @@
+[
+    {
+        "ID":194433170,
+        "name":"RSU Haji Surabaya",
+        "x":112.7798273164,
+        "y":-7.2828132689,
+        "load_percentage":100,
+        "wait_time":500.0
+    },
+    {
+        "ID":257897278,
+        "name":"Rumah Sakit Universitas Airlangga",
+        "x":112.7849221981,
+        "y":-7.2698205868,
+        "load_percentage":100,
+        "wait_time":500.0
+    },
+    {
+        "ID":429077947,
+        "name":"RSIA Ferina Surabaya",
+        "x":112.7448281585,
+        "y":-7.2737546076,
+        "load_percentage":100,
+        "wait_time":500.0
+    },
+    {
+        "ID":450513383,
+        "name":"Siloam Hospitals",
+        "x":112.7463915186,
+        "y":-7.2740311988,
+        "load_percentage":10,
+        "wait_time":50.0
+    },
+    {
+        "ID":464566820,
+        "name":"RSUD Dr. Soetomo",
+        "x":112.7581832823,
+        "y":-7.2682133036,
+        "load_percentage":15,
+        "wait_time":75.0
+    }
+]

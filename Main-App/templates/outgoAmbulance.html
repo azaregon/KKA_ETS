@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ambulance Dispatch List</title>
+    <style>
+        table {
+            width: 90%;
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a {
+            text-decoration: none;
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">Ambulance Dispatch List for Hospital ID: {{ rs_id }}</h2>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Destination Hospital</th>
+            <th>Action</th>
+        </tr>
+        {% for t in ambulance_list %}
+        <tr>
+            <td>{{ t.ID[:8] }}{% if t.ID|length > 8 %}...{% endif %}</td>
+            <td>{{ t.status }}</td>
+            <td>{{ t.hospital_dest_name }}</td>
+            <td><a href="/map/{{ t.ID }}">show_detail</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No transport records found.</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
