@@ -15,9 +15,9 @@ import heapq
 import folium
 import branca.colormap as cm
 
-import io
-import speech_recognition as sr
-from pydub import AudioSegment
+# import io
+# import speech_recognition as sr
+# from pydub import AudioSegment
 
 def load_geojson(fname:str):
     with open(fname,"r") as geojson_file:
@@ -422,37 +422,37 @@ def generate_map_graph():
     # m.save("test_map.html")
 
 
-def noteSpeechRecognitiion(audio_file_path:str):
-    audio = AudioSegment.from_file(audio_file_path, format="webm")
+# def noteSpeechRecognitiion(audio_file_path:str):
+#     audio = AudioSegment.from_file(audio_file_path, format="webm")
 
-    # Export to a BytesIO buffer (in memory, no file saved)
-    wav_io = io.BytesIO()
-    audio.export(wav_io, format="wav")
-    wav_io.seek(0)
-    # Inisialisasi recognizer
-    r = sr.Recognizer()
+#     # Export to a BytesIO buffer (in memory, no file saved)
+#     wav_io = io.BytesIO()
+#     audio.export(wav_io, format="wav")
+#     wav_io.seek(0)
+#     # Inisialisasi recognizer
+#     r = sr.Recognizer()
 
-    # Gunakan mikrofon sebagai sumber suara
-    with sr.AudioFile(wav_io) as source:
-        print("Katakan sesuatu!")
-        # Dengarkan audio dari mikrofon
-        audio = r.record(source)  # read the entire file
+#     # Gunakan mikrofon sebagai sumber suara
+#     with sr.AudioFile(wav_io) as source:
+#         print("Katakan sesuatu!")
+#         # Dengarkan audio dari mikrofon
+#         audio = r.record(source)  # read the entire file
 
 
-    ret_val = ''
-    try:
-        # Konversi suara ke teks menggunakan Google Web Speech API
-        text = r.recognize_google(audio, language='id-ID')
-        # print(f"Anda berkata: {text}")
-        ret_val = f"Notes:\n{text}"
-    except sr.UnknownValueError:
-        ret_val = "There is a note, but the system cannot recognize it, please play the audio"
-    except sr.RequestError as e:
-        ret_val = f"An error occured when trying to connect to google speech service; -> {e}"
-    except Exception as e:
-        ret_val = "An error occured: " + e
+#     ret_val = ''
+#     try:
+#         # Konversi suara ke teks menggunakan Google Web Speech API
+#         text = r.recognize_google(audio, language='id-ID')
+#         # print(f"Anda berkata: {text}")
+#         ret_val = f"Notes:\n{text}"
+#     except sr.UnknownValueError:
+#         ret_val = "There is a note, but the system cannot recognize it, please play the audio"
+#     except sr.RequestError as e:
+#         ret_val = f"An error occured when trying to connect to google speech service; -> {e}"
+#     except Exception as e:
+#         ret_val = "An error occured: " + e
 
-    return ret_val
+#     return ret_val
 
 
 
