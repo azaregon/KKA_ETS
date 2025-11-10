@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hospital Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f7f8fa;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+        }
+        main {
+            max-width: 600px;
+            margin: 40px auto;
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        a {
+            display: block;
+            margin: 15px 0;
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Hospital Dashboard</h1>
+    </header>
+
+    <main>
+        <h2>Hospital ID: {{ rs_id }}</h2>
+        <p>Select an option:</p>
+
+        <a href="/incoming_patient/{{ rs_id }}">🧑‍⚕️ View Incoming Patients</a>
+        <a href="/ambulance/{{ rs_id }}">🚑 View Ambulance Departures</a>
+    </main>
+</body>
+</html>

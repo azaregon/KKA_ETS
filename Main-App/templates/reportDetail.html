@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Help Report Detail</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        .info {
+            margin: 15px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .info strong {
+            color: #555;
+            display: inline-block;
+            width: 130px;
+        }
+
+        .map-container {
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        iframe {
+            width: 100%;
+            height: 300px;
+            border: none;
+        }
+
+        .audio-section {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .back-btn {
+            display: block;
+            text-align: center;
+            margin-top: 25px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🚑 Help Report Detail</h2>
+
+        <div class="info"><strong>Report ID:</strong> {{ report.ID }}</div>
+        <div class="info"><strong>Status:</strong> {{ report.status }}</div>
+        <div class="info"><strong>Submitted at:</strong> {{ report.added_on }}</div>
+        <div class="info"><strong>RS Ambulans</strong> {{ report.hospital_ambulance }}</div>
+        <div class="info"><strong>RS Tujuan</strong> {{ report.hospital_dest }}</div>
+        <!-- <div class="info"><strong>Latitude:</strong> {{ report.lat }}</div>
+        <div class="info"><strong>Longitude:</strong> {{ report.lon }}</div> -->
+
+        <div class="map-container">
+            <iframe 
+                src="/map/{{report.ID}}">
+            </iframe>
+        </div>
+
+        {% if report.audio_note_fname %}
+        <div class="audio-section">
+            <h3>🎧 Patient Condition Audio</h3>
+            <audio controls>
+                <source src="/audio_note/{{ report.audio_note_fname }}" type="audio/webm">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+        {% else %}
+        <div class="audio-section">
+            <h3>🎧 No Audio Provided</h3>
+        </div>
+        {% endif %}
+
+
+        <!-- <iframe src="/audio_note_text/{{ report.ID }}" -->
+
+        <!-- <a href="/reports" class="back-btn">⬅️ Back to Reports</a> -->
+    </div>
+
+</body>
+</html>

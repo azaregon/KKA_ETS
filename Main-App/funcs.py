@@ -13,6 +13,11 @@ import numpy as np
 import math
 import heapq
 import folium
+import branca.colormap as cm
+
+import io
+import speech_recognition as sr
+from pydub import AudioSegment
 
 def load_geojson(fname:str):
     with open(fname,"r") as geojson_file:
@@ -276,6 +281,59 @@ def findRoute(G, hospitals_data, rs_node, korban_node, korban_lat, korban_long):
         'best_cost' : best_cost
     }
 
+
+import numpy as np
+
+def colorize_all_edges(G, m):
+    segments = []
+    costs = []
+
+    for u, v, data in G.edges(data=True):
+        if "cost" not in data:
+            continue
+        
+        cost = data["cost"]
+        costs.append(cost)
+
+        if "geometry" in data:
+            coords = [(pt[1], pt[0]) for pt in data["geometry"].coords]
+        else:
+            coords = [
+                (G.nodes[u]['y'], G.nodes[u]['x']),
+                (G.nodes[v]['y'], G.nodes[v]['x'])
+            ]
+
+        segments.append((coords, cost))
+
+    #Clip cost range to reduce red dominance 
+    lower = np.percentile(costs, 5)   # cost rendah
+    upper = np.percentile(costs, 95)  # cost tinggi tapi tanpa outlier
+
+    colormap = cm.LinearColormap(
+        ['green','yellow','red'], 
+        vmin=lower, vmax=upper
+    )
+
+
+    for coords, cost in segments:
+        # Clip value so visualization stays consistent
+        normalized_cost = np.clip(cost, lower, upper)
+        color = colormap(normalized_cost)
+
+        folium.PolyLine(
+            coords,
+            weight=3,
+            color=color,
+            opacity=0.8
+        ).add_to(m)
+
+    colormap.caption = "Edge Cost (Lower = Faster)"
+    colormap.add_to(m)
+
+    return m
+
+
+
 def get_fastest_route(G, lat,long, geojson, hospitals_data, rs_node):
     korban_node = generate_node_korban(G,lat,long)
     route_result = findRoute(G, hospitals_data, rs_node, korban_node, lat, long)
@@ -319,6 +377,8 @@ def get_fastest_route(G, lat,long, geojson, hospitals_data, rs_node):
         icon=folium.Icon(color='blue', icon='hospital', prefix="fa")
     ).add_to(m)
 
+    m = colorize_all_edges(G,m)
+
     folium.PolyLine(route_coords, weight=6, color='green', opacity=0.3).add_to(m)
     folium.PolyLine(route_coords_to_accident, weight=6, color='red', opacity=0.8).add_to(m)
     folium.PolyLine(route_coords_to_hospital, weight=6, color='blue', opacity=0.3).add_to(m)
@@ -360,6 +420,40 @@ def generate_map_graph():
     # m, target_data = get_fastest_route(G, korban_lat, korban_long, geojson, hospitals, hospitals.index.tolist())
     # show folium map
     # m.save("test_map.html")
+
+
+def noteSpeechRecognitiion(audio_file_path:str):
+    audio = AudioSegment.from_file(audio_file_path, format="webm")
+
+    # Export to a BytesIO buffer (in memory, no file saved)
+    wav_io = io.BytesIO()
+    audio.export(wav_io, format="wav")
+    wav_io.seek(0)
+    # Inisialisasi recognizer
+    r = sr.Recognizer()
+
+    # Gunakan mikrofon sebagai sumber suara
+    with sr.AudioFile(wav_io) as source:
+        print("Katakan sesuatu!")
+        # Dengarkan audio dari mikrofon
+        audio = r.record(source)  # read the entire file
+
+
+    ret_val = ''
+    try:
+        # Konversi suara ke teks menggunakan Google Web Speech API
+        text = r.recognize_google(audio, language='id-ID')
+        # print(f"Anda berkata: {text}")
+        ret_val = f"Notes:\n{text}"
+    except sr.UnknownValueError:
+        ret_val = "There is a note, but the system cannot recognize it, please play the audio"
+    except sr.RequestError as e:
+        ret_val = f"An error occured when trying to connect to google speech service; -> {e}"
+    except Exception as e:
+        ret_val = "An error occured: " + e
+
+    return ret_val
+
 
 
 

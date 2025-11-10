@@ -1,8 +1,26 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, create_engine, insert, select
-from sqlalchemy.orm import declarative_base, Session
+from sqlalchemy.orm import declarative_base, Session, aliased
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 Base = declarative_base()
 DB_URL = 'sqlite:///z_coba.db'
+
+class USER(Base,UserMixin):
+    __tablename__ = 'USER'
+    ID = Column(String(20),primary_key=True)
+    name = Column(String)
+    password = Column(String)
+    role = Column(String(10)) # RSADMIN, DRIVER, HEAD, APPADMIN 
+    RSID = Column(Integer)
+
+
+    def setPassword(self, new_password):
+        self.password = generate_password_hash(new_password)
+
+    def checkPassword(self, input_password):
+        self.password = check_password_hash(input_password)
+
 
 class HOSPITAL(Base):
     __tablename__ = 'HOSPITAL'
@@ -19,6 +37,7 @@ class PATIENT_TRANSPORT_LIST(Base):
     ID = Column(String, primary_key=True)
     status = Column(String) # PREP, TO_PATIENT, TO_HOSPITAL, AT_HOSPITAL, ON_MISSON, AT
     html_fname = Column(String)
+    audio_note_fname = Column(String)
     added_on = Column(Float)
 
     HOSPITAL_AMBULANCE_ID = Column(String, ForeignKey('HOSPITAL.ID')) # FK  
@@ -29,6 +48,7 @@ class PATIENT_TRANSPORT_LIST(Base):
 
 # --------------------------------- functions -------------------------------- #
 from datetime import datetime
+import time
 
 
 ### DATABASE UTILITY FUNCTIONS 
@@ -37,6 +57,13 @@ def createAllTables(engine,drop_exist=False) -> None:
         Base.metadata.drop_all(engine)
 
     Base.metadata.create_all(engine)
+
+
+def dropTable(engine,table_class):
+    table_class.__table__.drop(engine)
+
+def createTable(engine,table_class):
+    table_class.__table__.create(engine)
 
 
 def seedWithList(engine, table_class, seed_list):
@@ -63,6 +90,7 @@ def addNewpatientTransportRecord(hs_id_from,hs_id_to):
                 "ID" : uuid_generated,
                 "status" : "PREP",
                 "html_fname" : f"{uuid_generated}.html",
+                "audio_note_fname" : f"{uuid_generated}.webm",
                 "added_on" : time.time(),
 
                 "HOSPITAL_AMBULANCE_ID" : str(hs_id_from),
@@ -153,6 +181,51 @@ def getAllIncomingEmergencyPatient(hs_id):
             session.commit()
 
     return ret_val
+
+def getReport(map_id):
+    # PATIENT_TRANSPORT_LIST.__table__
+    engine = create_engine(DB_URL, echo=True)
+    ret_val = { 'ID' : '',
+                'status' : '', # PREP, TO_PATIENT, TO_HOSPITAL, AT_HOSPITAL, ON_MISSON, AT
+                'html_fname' : '',
+                'audio_note_fname' : '',
+                'added_on' : ''}
+    with Session(engine) as session:
+        hospital_ambulance = aliased(HOSPITAL)
+        hospital_dest = aliased(HOSPITAL)
+
+        stmt = (
+            select(PATIENT_TRANSPORT_LIST,hospital_ambulance,hospital_dest)
+            .join(hospital_ambulance, PATIENT_TRANSPORT_LIST.HOSPITAL_AMBULANCE_ID == hospital_ambulance.ID)
+            .join(hospital_dest, PATIENT_TRANSPORT_LIST.HOSPITAL_DEST_ID == hospital_dest.ID)
+            .where(PATIENT_TRANSPORT_LIST.ID == map_id)
+        )
+        try:
+            # hospital_for_id = session.execute(select(HOSPITAL).where(HOSPITAL.ID == hs_id)).scalars().first()
+            # ret_val['hospital_name'] = hospital_for_id.name
+            report, hs_ambulance, hs_dest = session.execute(stmt).first()
+            print()
+            # print(query_result)
+            print()
+            ret_val = { 
+                'ID' : report.ID,
+                'status' : report.status, # PREP, TO_PATIENT, TO_HOSPITAL, AT_HOSPITAL, ON_MISSON, AT
+                'html_fname' : report.html_fname,
+                'audio_note_fname' : report.audio_note_fname,
+                'added_on' : datetime.fromtimestamp(report.added_on).strftime('%Y-%m-%d %H:%M:%S'),
+                'hospital_ambulance' : hs_ambulance.name,
+                'hospital_dest' : hs_dest.name
+            }
+        except Exception as e:
+            print()
+            # print(e)
+            print()
+            session.rollback()
+        else:
+            session.commit()
+
+    return ret_val
+    
         
 
 
@@ -170,7 +243,11 @@ if __name__ == "__main__":
 
     engine = create_engine(DB_URL, echo=False)
 
+    # dropTable(engine,USER)
+    # createTable(engine,USER)
     createAllTables(engine=engine,drop_exist=True) # recreate all table
     seedWithList(engine, HOSPITAL, hospital_seeding_data)
+    exit()
+    createAllTables(engine=engine,drop_exist=False) # recreate all table
     # print(HOSPITAL.__table__)
 
